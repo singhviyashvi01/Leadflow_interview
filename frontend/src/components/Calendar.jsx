@@ -262,7 +262,7 @@ const YearView = ({ fYear, today, getCalendarInfo }) => {
 };
 
 const DayView = ({ selectedDayFull, fullViewDate, fYear, events }) => {
-  const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
+  const hours = Array.from({ length: 24 }, (_, i) => i); // 0 to 23
   const dayEvents = events[selectedDayFull] || [];
   const monthName = fullViewDate.toLocaleString('default', { month: 'long' });
   return (
@@ -271,7 +271,9 @@ const DayView = ({ selectedDayFull, fullViewDate, fYear, events }) => {
       <div className="space-y-0 relative">
         {hours.map(h => (
           <div key={h} className="flex border-t border-gray-100 h-20 items-start">
-            <span className="text-[10px] font-bold text-[#5a827d] w-16 -mt-2">{h > 12 ? `${h-12} PM` : h === 12 ? '12 PM' : `${h} AM`}</span>
+            <span className="text-[10px] font-bold text-[#5a827d] w-16 -mt-2">
+              {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
+            </span>
             <div className="flex-1 h-full relative">
               {dayEvents.filter(e => e.hour === h).map((event, i) => (
                 <div key={i} className="absolute left-2 right-2 top-2 p-4 bg-[#0e4d46] text-white rounded-xl shadow-md z-10 animate-in slide-in-from-left-2 duration-300 cursor-pointer">
@@ -581,13 +583,7 @@ const CreateEventView = ({ onSave, onCancel, onDelete, initialData, dealOptions 
   const handleSave = (e) => {
     e.preventDefault();
 
-    // Timing Validation
-    const start = new Date(`${startDate}T${startTime}`);
-    const end = new Date(`${endDate}T${endTime}`);
-    if (end <= start) {
-      alert('Senseless timings! The event must end after it starts.');
-      return;
-    }
+    // Timing Validation removed as per user request to allow saving any timings
 
     onSave({
       title: title || 'Untitled Event',
@@ -929,7 +925,6 @@ const Calendar = ({ variant = 'mini' }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterAttendee, setFilterAttendee] = useState('all');
-  const [filterColor, setFilterColor] = useState('all');
   const [isOverTrash, setIsOverTrash] = useState(false);
   const [draggingEventId, setDraggingEventId] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null);
@@ -1016,7 +1011,6 @@ const Calendar = ({ variant = 'mini' }) => {
       const matchesAttendee =
         filterAttendee === 'all' ||
         (ev.attendees || []).some((a) => String(a.id) === filterAttendee);
-      const matchesColor = filterColor === 'all' || ev.color === filterColor;
 
       const textBlob = [
         ev.title,
@@ -1030,7 +1024,7 @@ const Calendar = ({ variant = 'mini' }) => {
         .toLowerCase();
 
       const matchesSearch = !q || textBlob.includes(q);
-      return matchesType && matchesAttendee && matchesColor && matchesSearch;
+      return matchesType && matchesAttendee && matchesSearch;
     });
   };
 
@@ -1296,7 +1290,8 @@ const Calendar = ({ variant = 'mini' }) => {
               setEditingEvent(null);
             } catch (err) {
               console.error('Failed to save event', err);
-              alert('Failed to save event. Please try again.');
+              const errMsg = err.response?.data?.detail || err.response?.data?.message || JSON.stringify(err.response?.data) || 'Failed to save event. Please try again.';
+              alert(errMsg);
             }
           }}
           onDelete={editingEvent ? async () => {
@@ -1367,23 +1362,12 @@ const Calendar = ({ variant = 'mini' }) => {
                   <option key={a.id} value={String(a.id)}>{a.name}</option>
                 ))}
               </select>
-              <select
-                value={filterColor}
-                onChange={(e) => setFilterColor(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-[#0e4d46] bg-white focus:outline-none focus:ring-2 focus:ring-[#0e4d46]/20"
-              >
-                <option value="all">All Colors</option>
-                {EVENT_COLORS.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-              {(searchQuery || filterType !== 'all' || filterAttendee !== 'all' || filterColor !== 'all') && (
+              {(searchQuery || filterType !== 'all' || filterAttendee !== 'all') && (
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setFilterType('all');
                     setFilterAttendee('all');
-                    setFilterColor('all');
                   }}
                   className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-[#5a827d] hover:text-[#0e4d46] hover:border-[#0e4d46] transition-all"
                 >
@@ -1437,6 +1421,24 @@ const Calendar = ({ variant = 'mini' }) => {
               </div>
               {selectedDayEvents.length > 0 && (
                 <div className="flex items-center gap-3 shrink-0 ml-4">
+                  <button
+                    onClick={async () => {
+                      if (window.confirm(`Delete "${activeEvent.title}"?`)) {
+                        try {
+                          await deleteCalendarEvent(activeEvent.id);
+                          await loadEvents();
+                        } catch (err) {
+                          console.error('Failed to delete event', err);
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-1.5 border border-red-300 text-red-500 px-4 py-3 rounded-xl text-sm font-bold hover:bg-red-50 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
                   <button
                     onClick={() => setEditingEvent(activeEvent)}
                     className="border border-[#0e4d46] text-[#0e4d46] px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#f0f7f6] transition-all"
