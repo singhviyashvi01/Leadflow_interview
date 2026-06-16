@@ -101,6 +101,7 @@ def user_list(request):
 class CalendarEventViewSet(viewsets.ModelViewSet):
     serializer_class = CalendarEventSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         queryset = CalendarEvent.objects.all().order_by('start_time')
@@ -123,12 +124,9 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
             end = validated.get('end_time')
             attendee_qs = validated.get('attendee_ids', [])
             attendee_ids = [u.id for u in attendee_qs] if attendee_qs else []
-            conflicts = CalendarEvent.objects.filter(
-                (Q(user=request.user) | Q(attendees__in=attendee_ids))
-            ).filter(start_time__lt=end, end_time__gt=start).distinct()
-            if conflicts.exists():
-                details = [f"{c.title} ({c.start_time} - {c.end_time})" for c in conflicts[:5]]
-                return Response({"detail": "Conflicting events exist.", "conflicts": details}, status=status.HTTP_400_BAD_REQUEST)
+            # Removed strict conflict check to allow overlapping events
+            # conflicts = CalendarEvent.objects.filter(...)
+
 
             instance = serializer.save(user=request.user)
             _create_meeting_notifications(instance, request.user, 'New meeting scheduled')
@@ -151,12 +149,8 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
             else:
                 attendee_ids = [u.id for u in attendee_qs]
 
-            conflicts = CalendarEvent.objects.filter(
-                (Q(user=instance.user) | Q(attendees__in=attendee_ids))
-            ).exclude(id=instance.id).filter(start_time__lt=new_end, end_time__gt=new_start).distinct()
-            if conflicts.exists():
-                details = [f"{c.title} ({c.start_time} - {c.end_time})" for c in conflicts[:5]]
-                return Response({"detail": "Conflicting events exist.", "conflicts": details}, status=status.HTTP_400_BAD_REQUEST)
+            # Removed strict conflict check to allow overlapping events
+            # conflicts = CalendarEvent.objects.filter(...)
 
             updated = serializer.save()
             _create_meeting_notifications(updated, request.user, 'Meeting updated')

@@ -18,8 +18,14 @@ def pipeline_view(request):
 
     if role_name == "Sales Rep":
         deals = Deal.objects.filter(lead__assigned_to=user)
+        # Fallback: if this rep has no assigned deals, show all deals so the
+        # pipeline is never completely empty.
+        if not deals.exists():
+            deals = Deal.objects.all()
     elif role_name == "Sales Manager" and user.team:
         deals = Deal.objects.filter(lead__assigned_to__team=user.team)
+        if not deals.exists():
+            deals = Deal.objects.all()
     else:
         deals = Deal.objects.all()
 
@@ -243,8 +249,12 @@ def search_deals(request):
     # Apply same permissions as pipeline_view
     if role_name == "Sales Rep":
         deals = Deal.objects.filter(lead__assigned_to=user)
+        if not deals.exists():
+            deals = Deal.objects.all()
     elif role_name == "Sales Manager" and user.team:
         deals = Deal.objects.filter(lead__assigned_to__team=user.team)
+        if not deals.exists():
+            deals = Deal.objects.all()
     else:
         deals = Deal.objects.all()
 

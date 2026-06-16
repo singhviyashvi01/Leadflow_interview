@@ -371,7 +371,7 @@ const Invoices = () => {
 
         </div>
 
-      <button 
+      {/* <button 
         onClick={handleGenerateInvoices}
         disabled={generating}
         className={`fixed bottom-6 right-6 md:bottom-10 md:right-10 flex items-center justify-center gap-2.5 bg-[#0e4d46] text-white px-5 md:px-7 py-3 md:py-4 rounded-[1.2rem] shadow-[0_8px_30px_rgb(14,77,70,0.3)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(14,77,70,0.4)] transition-all font-extrabold text-[10px] md:text-xs tracking-wide uppercase z-50 ${generating ? 'opacity-70 cursor-not-allowed' : ''}`}
@@ -385,7 +385,7 @@ const Invoices = () => {
         </svg>
         <span className="hidden xs:inline">{generating ? 'Generating...' : 'Auto-Generate Invoice'}</span>
         <span className="xs:hidden">{generating ? '...' : 'Generate'}</span>
-      </button>
+      </button> */}
 
     </div>
   );

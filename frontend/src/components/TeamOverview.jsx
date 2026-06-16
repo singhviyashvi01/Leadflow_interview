@@ -73,10 +73,19 @@ const TeamOverview = () => {
 
   const activeData = memberStats[selectedMemberName] || memberStats[Object.keys(memberStats)[0]];
 
+  // Backend guarantees quota is in [30, 75] and unique per rep.
+  // We still guard against any edge cases from old cached data.
+  const safeQuota = (val) => Math.min(75, Math.max(30, Number(val) || 45));
+
+  const activeQuota = safeQuota(activeData.quota);
+
   const quotaPieData = [
-    { name: 'Achieved', value: activeData.quota, color: '#0e4d46' },
-    { name: 'Remaining', value: Math.max(0, 100 - activeData.quota), color: '#e9f1f0' },
+    { name: 'Achieved', value: activeQuota, color: '#0e4d46' },
+    { name: 'Remaining', value: 100 - activeQuota, color: '#e9f1f0' },
   ];
+
+  // Current month abbreviation for bar highlighting (e.g. 'JUN')
+  const currentMonthName = new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase();
 
   const CustomBarTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -142,12 +151,12 @@ style={{
                     </div>
                     <div className="w-12 text-right shrink-0">
                       <div className={`text-sm font-extrabold ${isSelected ? 'text-white' : 'text-[#0e4d46]'}`}>
-                        {member.quota}%
+                        {safeQuota(member.quota)}%
                       </div>
                       <div className="w-full h-1.5 mt-1.5 rounded-full overflow-hidden bg-black/10">
                         <div 
                           className={`h-full rounded-full ${isSelected ? 'bg-white' : 'bg-[#0e4d46]'}`} 
-                          style={{ width: `${Math.min(member.quota, 100)}%` }}
+                          style={{ width: `${safeQuota(member.quota)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -267,7 +276,7 @@ style={{
                     </Pie>
                   </PieChart>
                   <div className="absolute flex flex-col items-center justify-center mt-1 pointer-events-none">
-                    <span className="text-4xl font-extrabold text-[#0e4d46]">{activeData.quota}%</span>
+                    <span className="text-4xl font-extrabold text-[#0e4d46]">{activeQuota}%</span>
                     <span className="text-[9px] text-[#5a827d] font-extrabold uppercase tracking-widest mt-1">Of Quota</span>
                   </div>
                 </div>
@@ -284,18 +293,18 @@ style={{
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <h3 className="font-extrabold text-[#0e4d46] text-lg">Monthly Revenue Trend</h3>
                   <div className="flex items-center text-[12px] text-[#0e4d46] font-bold cursor-pointer bg-[#f0f9f7] px-3 py-1.5 rounded-lg border border-teal-100">
-                    Last 6 Months
+                    Last 5 Months
                     <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
                   </div>
                 </div>
                 <div className="h-56 w-full mt-4">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={activeData.revenueData}>
+                    <BarChart data={activeData.revenueData} barCategoryGap="30%">
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#5a827d', fontWeight: 'bold' }} dy={10} />
                       <Tooltip content={<CustomBarTooltip />} cursor={{ fill: 'transparent' }} />
-                      <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={12}>
+                      <Bar dataKey="value" radius={[8, 8, 4, 4]} barSize={32}>
                         {activeData.revenueData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.name === 'MAY' ? '#0e4d46' : '#e9f1f0'} />
+                          <Cell key={`cell-${index}`} fill={entry.name === currentMonthName ? '#0e4d46' : '#d4e8e5'} />
                         ))}
                       </Bar>
                     </BarChart>

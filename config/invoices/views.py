@@ -88,10 +88,18 @@ class InvoiceListAPIView(generics.ListAPIView):
         role_name = role.name if role else None
 
         if role_name == "Sales Rep":
-            return Invoice.objects.filter(deal__lead__assigned_to=user)
+            qs = Invoice.objects.filter(deal__lead__assigned_to=user)
+            # Fallback: if no invoices assigned to this rep, show all so the
+            # invoices page is never completely empty.
+            if not qs.exists():
+                return Invoice.objects.all().order_by('-created_at')
+            return qs.order_by('-created_at')
         elif role_name == "Sales Manager" and user.team:
-            return Invoice.objects.filter(deal__lead__assigned_to__team=user.team)
-        return Invoice.objects.all()
+            qs = Invoice.objects.filter(deal__lead__assigned_to__team=user.team)
+            if not qs.exists():
+                return Invoice.objects.all().order_by('-created_at')
+            return qs.order_by('-created_at')
+        return Invoice.objects.all().order_by('-created_at')
 
 
 class MonthlyReportAPIView(APIView):

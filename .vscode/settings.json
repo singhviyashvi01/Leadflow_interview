@@ -1,0 +1,4 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/config/venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}/config"]
+}
